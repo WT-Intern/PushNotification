@@ -22,6 +22,16 @@ public class CallbackService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(CallbackService.class);
 	
+	public void sendCallback(String callbackUrl, String toId, FcmResponseResult fcmResponseResult) {
+		List<String> toIds = new ArrayList<String>();
+		toIds.add(toId);
+		
+		List<FcmResponseResult> fcmResponseResults = new ArrayList<FcmResponseResult>();
+		fcmResponseResults.add(fcmResponseResult);
+		
+		sendCallback(callbackUrl, toIds, fcmResponseResults);
+	}
+	
 	public void sendCallback(String callbackUrl, List<String> toIds, List<FcmResponseResult> fcmResponseResults) {
 		// Build CallbackPayload List from error results
 		List<CallbackPayload> callbackPayload = buildCallbackPayloadList(toIds, fcmResponseResults);
