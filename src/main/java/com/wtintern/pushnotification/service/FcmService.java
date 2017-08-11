@@ -76,9 +76,7 @@ public class FcmService {
 		dbService.saveFcmReportToDb(dataFromClient.getTo(), responseEntity.getBody().getResults().get(0));
 		
 		// Send callback if needed
-		List<String> toIds = new ArrayList<String>();
-		toIds.add(dataFromClient.getTo());
-		cbService.sendCallback(callbackUrl, toIds, responseEntity.getBody().getResults());
+		cbService.sendCallback(callbackUrl, dataFromClient.getTo(), responseEntity.getBody().getResults().get(0));
 	}
 
 	@Async
