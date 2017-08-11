@@ -1,6 +1,7 @@
 package com.wtintern.pushnotification.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -19,6 +20,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.wtintern.pushnotification.model.DataFromClient;
@@ -31,11 +34,27 @@ import com.wtintern.pushnotification.model.ResponseFromFcm;
 public class FcmService {
 	
 	private static final String URL = "https://fcm.googleapis.com/fcm/send";
-	private static final String SERVER_KEY = "AAAA7ccnQhg:APA91bFn4RYCuFFlXPy8bKOIHdNvEuKXNJdHuxu1AcSNTOAVBV6GsTVUlPJVF3Lt5_wtyGNgQXuXkV84hjEfT7PEXFfownoZVX_Ra63FlPhKZXDuFzXe65N1VLnmwZa6ly-hes9AilM2";
+	private static final String SERVER_KEY = "AAA7ccnQhg:APA91bFn4RYCuFFlXPy8bKOIHdNvEuKXNJdHuxu1AcSNTOAVBV6GsTVUlPJVF3Lt5_wtyGNgQXuXkV84hjEfT7PEXFfownoZVX_Ra63FlPhKZXDuFzXe65N1VLnmwZa6ly-hes9AilM2";
 	private static final String DEVICE_ID_HEADER = "to_id";
 	private static final String TAG_PATTERN = "<([a-zA-Z0-9_]+)>";
 	
 	private static final Logger logger = LoggerFactory.getLogger(FcmService.class);
+	private static final Map<Integer,String> CUSTOM_MESSAGE = new HashMap<>();
+	
+	static{
+		CUSTOM_MESSAGE.put(400, "Invalid Parameter");
+		CUSTOM_MESSAGE.put(401, "Authentication Error");
+		CUSTOM_MESSAGE.put(403, "Forbidden");
+		CUSTOM_MESSAGE.put(404, "Not Found");
+		CUSTOM_MESSAGE.put(406, "Not Accepted");
+		CUSTOM_MESSAGE.put(415, "Unsupported Media Type");
+		
+		CUSTOM_MESSAGE.put(500, "Internal Server Error");
+		CUSTOM_MESSAGE.put(501, "Not Implemented");
+		CUSTOM_MESSAGE.put(502, "Bad Gateway");
+		CUSTOM_MESSAGE.put(503, "Service Unavaible");
+		CUSTOM_MESSAGE.put(504, "Gateway Timeout");
+	}
 	
 	@Autowired
 	DbService dbService;
@@ -44,7 +63,9 @@ public class FcmService {
 
 	@Async
 	public void sendNotificationToSingleDevice(DataFromClient dataFromClient, String callbackUrl) {
-		// Prepare RestTemplate
+		FcmResponseResult fcmResponseResult;
+		try
+		{// Prepare RestTemplate
 		RestTemplate restTemplate = new RestTemplate();
 		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 
@@ -69,19 +90,30 @@ public class FcmService {
 
 		// Send request and get response
 		ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
+		fcmResponseResult = responseEntity.getBody().getResults().get(0);
 		
 		logger.info("Single Device Notification Sent To Fcm");
-		
+		}catch(HttpClientErrorException | HttpServerErrorException ex) {
+			int statusCode = ex.getRawStatusCode();
+			String statusMessage = CUSTOM_MESSAGE.containsKey(statusCode) ? CUSTOM_MESSAGE.get(statusCode) : ex.getMessage();
+			
+			fcmResponseResult = buildFcmResponseFromException(null, null, statusMessage);
+		} catch (Exception e) {
+			fcmResponseResult = buildFcmResponseFromException(null, null, e.getMessage());
+		}
 		// Save results to DB
-		dbService.saveFcmReportToDb(dataFromClient.getTo(), responseEntity.getBody().getResults().get(0));
+		dbService.saveFcmReportToDb(dataFromClient.getTo(), fcmResponseResult);
 		
 		// Send callback if needed
-		cbService.sendCallback(callbackUrl, dataFromClient.getTo(), responseEntity.getBody().getResults().get(0));
+		cbService.sendCallback(callbackUrl, dataFromClient.getTo(), fcmResponseResult);
 	}
 
 	@Async
 	public void sendNotificationToMultipleDevice(DataFromClient dataFromClient, List<String> toIds, String callbackUrl) {
-		// Prepare RestTemplate
+		
+		List<FcmResponseResult> fcmResponseResults = new ArrayList<FcmResponseResult>();
+		try
+		{// Prepare RestTemplate
 		RestTemplate restTemplate = new RestTemplate();
 		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 
@@ -106,14 +138,24 @@ public class FcmService {
 
 		// Send request and get response
 		ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
+		fcmResponseResults = responseEntity.getBody().getResults();
 		
 		logger.info("Multiple Device Notification Sent To Fcm");
-		
+		}catch(HttpClientErrorException | HttpServerErrorException ex) {
+			int statusCode = ex.getRawStatusCode();
+						
+			String statusMessages = CUSTOM_MESSAGE.containsKey(statusCode) ? CUSTOM_MESSAGE.get(statusCode) : ex.getMessage();
+					
+			fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, statusMessages);
+		}
+		catch(Exception ex) {
+			fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, ex.getMessage());
+		}
 		// Save results to DB
-		dbService.saveFcmReportToDb(toIds, responseEntity.getBody().getResults());
+		dbService.saveFcmReportToDb(toIds,fcmResponseResults);
 		
 		// Send callback if needed
-		cbService.sendCallback(callbackUrl, toIds, responseEntity.getBody().getResults());
+		cbService.sendCallback(callbackUrl, toIds, fcmResponseResults);
 		
 	}
 
@@ -135,6 +177,7 @@ public class FcmService {
 		// Create List to Track Each toIds & result for report
 		List<String> toIds = new ArrayList<String>();
 		List<FcmResponseResult> fcmResponseResults = new ArrayList<FcmResponseResult>();
+		List<FcmResponseResult> fcmResponseResultsList = new ArrayList<FcmResponseResult>();
 		
 		// Send Request to FCM for Each Device
 		for (CSVRecord record : records) {
@@ -151,23 +194,33 @@ public class FcmService {
 
 			// Create Request Entity
 			HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
-
+			try
+			{
 			// Send request and get response
 			ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity,	ResponseFromFcm.class);
-			
+			fcmResponseResults = responseEntity.getBody().getResults();
+			logger.info("Formatted Message Notification Sent To Fcm");
+			}catch(HttpClientErrorException | HttpServerErrorException ex) {
+				int statusCode = ex.getRawStatusCode();
+				
+				String statusMessages = CUSTOM_MESSAGE.containsKey(statusCode) ? CUSTOM_MESSAGE.get(statusCode) : ex.getMessage();
+						
+				fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, statusMessages);
+			}
+			catch(Exception ex) {
+				fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, ex.getMessage());
+			}
 			// Save toId and result
 			toIds.add(record.get(DEVICE_ID_HEADER));
-			fcmResponseResults.add(responseEntity.getBody().getResults().get(0));
+			fcmResponseResultsList.addAll(fcmResponseResults);
 			
 		}
 		
-		logger.info("Formatted Message Notification Sent To Fcm");
-		
 		// Save results to DB
-		dbService.saveFcmReportToDb(toIds, fcmResponseResults);
+		dbService.saveFcmReportToDb(toIds, fcmResponseResultsList);
 		
 		// Send callback if needed
-		cbService.sendCallback(callbackUrl, toIds, fcmResponseResults);
+		cbService.sendCallback(callbackUrl, toIds, fcmResponseResultsList);
 	}
 	
 	private String replaceTags(String stringSource, String tagPattern, Map<String, String> replacement) {
@@ -181,6 +234,21 @@ public class FcmService {
 		matcher.appendTail(result);
 		
 		return result.toString();
+	}
+	
+	private static FcmResponseResult buildFcmResponseFromException(String messageId, String registrationId, String error) {
+		return new FcmResponseResult(messageId, registrationId, error);
+	}
+	
+	private static List<FcmResponseResult>buildFcmResponseFromExceptionList(List<String> toIds, String messageId, String registrationId, String error)
+	{	
+		List<FcmResponseResult> fcmResponseResultsList = new ArrayList<FcmResponseResult>();
+		
+		for (String toId 	: toIds) {
+			fcmResponseResultsList.add(buildFcmResponseFromException(messageId,registrationId, error));
+		}
+		
+		return fcmResponseResultsList;
 	}
 
 }
