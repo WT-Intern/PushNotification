@@ -24,6 +24,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.wtintern.pushnotification.exception.FcmExceptionHandler;
 import com.wtintern.pushnotification.model.DataFromClient;
 import com.wtintern.pushnotification.model.FcmResponseResult;
 import com.wtintern.pushnotification.model.NotificationPayload;
@@ -39,22 +40,6 @@ public class FcmService {
 	private static final String TAG_PATTERN = "<([a-zA-Z0-9_]+)>";
 	
 	private static final Logger logger = LoggerFactory.getLogger(FcmService.class);
-	private static final Map<Integer,String> CUSTOM_MESSAGE = new HashMap<>();
-	
-	static{
-		CUSTOM_MESSAGE.put(400, "Invalid Parameter");
-		CUSTOM_MESSAGE.put(401, "Authentication Error");
-		CUSTOM_MESSAGE.put(403, "Forbidden");
-		CUSTOM_MESSAGE.put(404, "Not Found");
-		CUSTOM_MESSAGE.put(406, "Not Accepted");
-		CUSTOM_MESSAGE.put(415, "Unsupported Media Type");
-		
-		CUSTOM_MESSAGE.put(500, "Internal Server Error");
-		CUSTOM_MESSAGE.put(501, "Not Implemented");
-		CUSTOM_MESSAGE.put(502, "Bad Gateway");
-		CUSTOM_MESSAGE.put(503, "Service Unavaible");
-		CUSTOM_MESSAGE.put(504, "Gateway Timeout");
-	}
 	
 	@Autowired
 	DbService dbService;
@@ -66,40 +51,35 @@ public class FcmService {
 		FcmResponseResult fcmResponseResult;
 		try
 		{// Prepare RestTemplate
-		RestTemplate restTemplate = new RestTemplate();
-		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-
-		// Create request header
-		MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-		requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
-		requestHeader.add("Content-Type", "application/json");
-
-		// Create Notification Payload
-		NotificationPayload notificationPayload = new NotificationPayload();
-		notificationPayload.setTitle(dataFromClient.getData().getTitle());
-		notificationPayload.setBody(dataFromClient.getData().getContent());
-
-		// Create request body
-		RequestToFcm requestBody = new RequestToFcm();
-		requestBody.setTo(dataFromClient.getTo());
-		requestBody.setNotification(notificationPayload);
-		requestBody.setData(dataFromClient.getData());
-
-		// Create Request Entity
-		HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
-
-		// Send request and get response
-		ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
-		fcmResponseResult = responseEntity.getBody().getResults().get(0);
-		
-		logger.info("Single Device Notification Sent To Fcm");
-		}catch(HttpClientErrorException | HttpServerErrorException ex) {
-			int statusCode = ex.getRawStatusCode();
-			String statusMessage = CUSTOM_MESSAGE.containsKey(statusCode) ? CUSTOM_MESSAGE.get(statusCode) : ex.getMessage();
+			RestTemplate restTemplate = new RestTemplate();
+			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+	
+			// Create request header
+			MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
+			requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
+			requestHeader.add("Content-Type", "application/json");
+	
+			// Create Notification Payload
+			NotificationPayload notificationPayload = new NotificationPayload();
+			notificationPayload.setTitle(dataFromClient.getData().getTitle());
+			notificationPayload.setBody(dataFromClient.getData().getContent());
+	
+			// Create request body
+			RequestToFcm requestBody = new RequestToFcm();
+			requestBody.setTo(dataFromClient.getTo());
+			requestBody.setNotification(notificationPayload);
+			requestBody.setData(dataFromClient.getData());
+	
+			// Create Request Entity
+			HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
+	
+			// Send request and get response
+			ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
+			fcmResponseResult = responseEntity.getBody().getResults().get(0);
 			
-			fcmResponseResult = buildFcmResponseFromException(null, null, statusMessage);
-		} catch (Exception e) {
-			fcmResponseResult = buildFcmResponseFromException(null, null, e.getMessage());
+			logger.info("Single Device Notification Sent To Fcm");
+		}  catch (Exception ex) {
+			fcmResponseResult = FcmExceptionHandler.buildFromException(ex);
 		}
 		// Save results to DB
 		dbService.saveFcmReportToDb(dataFromClient.getTo(), fcmResponseResult);
@@ -114,42 +94,35 @@ public class FcmService {
 		List<FcmResponseResult> fcmResponseResults = new ArrayList<FcmResponseResult>();
 		try
 		{// Prepare RestTemplate
-		RestTemplate restTemplate = new RestTemplate();
-		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-
-		// Create request header
-		MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-		requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
-		requestHeader.add("Content-Type", "application/json");
-
-		// Create Notification Payload
-		NotificationPayload notificationPayload = new NotificationPayload();
-		notificationPayload.setTitle(dataFromClient.getData().getTitle());
-		notificationPayload.setBody(dataFromClient.getData().getContent());
-
-		// Create request body
-		RequestToFcm requestBody = new RequestToFcm();
-		requestBody.setRegistrationIds(toIds);
-		requestBody.setNotification(notificationPayload);
-		requestBody.setData(dataFromClient.getData());
-
-		// Create Request Entity
-		HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
-
-		// Send request and get response
-		ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
-		fcmResponseResults = responseEntity.getBody().getResults();
-		
-		logger.info("Multiple Device Notification Sent To Fcm");
-		}catch(HttpClientErrorException | HttpServerErrorException ex) {
-			int statusCode = ex.getRawStatusCode();
-						
-			String statusMessages = CUSTOM_MESSAGE.containsKey(statusCode) ? CUSTOM_MESSAGE.get(statusCode) : ex.getMessage();
-					
-			fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, statusMessages);
-		}
-		catch(Exception ex) {
-			fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, ex.getMessage());
+			RestTemplate restTemplate = new RestTemplate();
+			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+	
+			// Create request header
+			MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
+			requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
+			requestHeader.add("Content-Type", "application/json");
+	
+			// Create Notification Payload
+			NotificationPayload notificationPayload = new NotificationPayload();
+			notificationPayload.setTitle(dataFromClient.getData().getTitle());
+			notificationPayload.setBody(dataFromClient.getData().getContent());
+	
+			// Create request body
+			RequestToFcm requestBody = new RequestToFcm();
+			requestBody.setRegistrationIds(toIds);
+			requestBody.setNotification(notificationPayload);
+			requestBody.setData(dataFromClient.getData());
+	
+			// Create Request Entity
+			HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
+	
+			// Send request and get response
+			ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
+			fcmResponseResults = responseEntity.getBody().getResults();
+			
+			logger.info("Multiple Device Notification Sent To Fcm");
+		} catch(Exception ex) {
+			fcmResponseResults = FcmExceptionHandler.buildFromException(ex, toIds);
 		}
 		// Save results to DB
 		dbService.saveFcmReportToDb(toIds,fcmResponseResults);
@@ -181,39 +154,33 @@ public class FcmService {
 		
 		// Send Request to FCM for Each Device
 		for (CSVRecord record : records) {
-			// Create Notification Payload
-			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(dataFromClient.getData().getTitle());
-			notificationPayload.setBody(replaceTags(content, TAG_PATTERN, record.toMap()));
-			
-			// Create request body
-			RequestToFcm requestBody = new RequestToFcm();
-			requestBody.setTo(record.get(DEVICE_ID_HEADER));
-			requestBody.setNotification(notificationPayload);
-			requestBody.setData(dataFromClient.getData());
-
-			// Create Request Entity
-			HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
-			try
-			{
-			// Send request and get response
-			ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity,	ResponseFromFcm.class);
-			fcmResponseResults = responseEntity.getBody().getResults();
-			logger.info("Formatted Message Notification Sent To Fcm");
-			}catch(HttpClientErrorException | HttpServerErrorException ex) {
-				int statusCode = ex.getRawStatusCode();
+			try{
+				// Create Notification Payload
+				NotificationPayload notificationPayload = new NotificationPayload();
+				notificationPayload.setTitle(dataFromClient.getData().getTitle());
+				notificationPayload.setBody(replaceTags(content, TAG_PATTERN, record.toMap()));
 				
-				String statusMessages = CUSTOM_MESSAGE.containsKey(statusCode) ? CUSTOM_MESSAGE.get(statusCode) : ex.getMessage();
-						
-				fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, statusMessages);
-			}
-			catch(Exception ex) {
-				fcmResponseResults = buildFcmResponseFromExceptionList(toIds, null,null, ex.getMessage());
-			}
+				// Create request body
+				RequestToFcm requestBody = new RequestToFcm();
+				requestBody.setTo(record.get(DEVICE_ID_HEADER));
+				requestBody.setNotification(notificationPayload);
+				requestBody.setData(dataFromClient.getData());
+	
+				// Create Request Entity
+				HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
+				
+				// Send request and get response
+				ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity,	ResponseFromFcm.class);
+				fcmResponseResults = responseEntity.getBody().getResults();
+				
+				logger.info("Formatted Message Notification Sent To Fcm");
+			} catch (Exception e) {
+				fcmResponseResults = FcmExceptionHandler.buildFromException(e, toIds);
+			}	
+			
 			// Save toId and result
 			toIds.add(record.get(DEVICE_ID_HEADER));
 			fcmResponseResultsList.addAll(fcmResponseResults);
-			
 		}
 		
 		// Save results to DB
@@ -235,20 +202,4 @@ public class FcmService {
 		
 		return result.toString();
 	}
-	
-	private static FcmResponseResult buildFcmResponseFromException(String messageId, String registrationId, String error) {
-		return new FcmResponseResult(messageId, registrationId, error);
-	}
-	
-	private static List<FcmResponseResult>buildFcmResponseFromExceptionList(List<String> toIds, String messageId, String registrationId, String error)
-	{	
-		List<FcmResponseResult> fcmResponseResultsList = new ArrayList<FcmResponseResult>();
-		
-		for (String toId 	: toIds) {
-			fcmResponseResultsList.add(buildFcmResponseFromException(messageId,registrationId, error));
-		}
-		
-		return fcmResponseResultsList;
-	}
-
 }
