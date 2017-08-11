@@ -33,6 +33,7 @@ public class DbService {
 		int currentIndex = 0;
 		for(String toId : toIds) {
 			saveFcmReportToDb(toId, fcmResponseResults.get(currentIndex));
+			currentIndex++;
 		}
 	}
 
