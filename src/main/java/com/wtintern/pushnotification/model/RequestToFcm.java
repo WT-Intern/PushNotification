@@ -1,6 +1,7 @@
 package com.wtintern.pushnotification.model;
 
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -18,14 +19,14 @@ public class RequestToFcm {
 	private String priority;
 	@JsonProperty("content_available")
 	private boolean contentAvailable;
-	private Object data;
+	private Map<String, String> data;
 	private NotificationPayload notification;
 	
 	public RequestToFcm() {
 	}
 
 	public RequestToFcm(String to, List<String> registrationIds, String condition, String collapseKey, String priority,
-			boolean contentAvailable, Object data, NotificationPayload notification) {
+			boolean contentAvailable, Map<String, String> data, NotificationPayload notification) {
 		this.to = to;
 		this.registrationIds = registrationIds;
 		this.condition = condition;
@@ -84,11 +85,11 @@ public class RequestToFcm {
 		this.contentAvailable = contentAvailable;
 	}
 
-	public Object getData() {
+	public Map<String, String> getData() {
 		return data;
 	}
 
-	public void setData(Object data) {
+	public void setData(Map<String, String> data) {
 		this.data = data;
 	}
 

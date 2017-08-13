@@ -1,7 +1,6 @@
 package com.wtintern.pushnotification.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -20,8 +19,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.wtintern.pushnotification.exception.FcmExceptionHandler;
@@ -35,9 +32,12 @@ import com.wtintern.pushnotification.model.ResponseFromFcm;
 public class FcmService {
 	
 	private static final String URL = "https://fcm.googleapis.com/fcm/send";
-	private static final String SERVER_KEY = "AAA7ccnQhg:APA91bFn4RYCuFFlXPy8bKOIHdNvEuKXNJdHuxu1AcSNTOAVBV6GsTVUlPJVF3Lt5_wtyGNgQXuXkV84hjEfT7PEXFfownoZVX_Ra63FlPhKZXDuFzXe65N1VLnmwZa6ly-hes9AilM2";
+	private static final String SERVER_KEY = "AAAA7ccnQhg:APA91bFn4RYCuFFlXPy8bKOIHdNvEuKXNJdHuxu1AcSNTOAVBV6GsTVUlPJVF3Lt5_wtyGNgQXuXkV84hjEfT7PEXFfownoZVX_Ra63FlPhKZXDuFzXe65N1VLnmwZa6ly-hes9AilM2";
 	private static final String DEVICE_ID_HEADER = "to_id";
 	private static final String TAG_PATTERN = "<([a-zA-Z0-9_]+)>";
+	
+	private static final String DATA_CLIENT_ATT_TITLE = "title";
+	private static final String DATA_CLIENT_ATT_CONTENT = "content";
 	
 	private static final Logger logger = LoggerFactory.getLogger(FcmService.class);
 	
@@ -61,8 +61,10 @@ public class FcmService {
 	
 			// Create Notification Payload
 			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(dataFromClient.getData().getTitle());
-			notificationPayload.setBody(dataFromClient.getData().getContent());
+			notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
+			notificationPayload.setBody(dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT));
+			
+			System.out.println(notificationPayload.getTitle() + " : " + notificationPayload.getBody());
 	
 			// Create request body
 			RequestToFcm requestBody = new RequestToFcm();
@@ -104,8 +106,8 @@ public class FcmService {
 	
 			// Create Notification Payload
 			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(dataFromClient.getData().getTitle());
-			notificationPayload.setBody(dataFromClient.getData().getContent());
+			notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
+			notificationPayload.setBody(dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT));
 	
 			// Create request body
 			RequestToFcm requestBody = new RequestToFcm();
@@ -136,7 +138,7 @@ public class FcmService {
 	public void sendNotificationWithFormattedMessage(DataFromClient dataFromClient, CSVParser records, String callbackUrl) {
 		
 		// Get Content from Data
-		String content = dataFromClient.getData().getContent();
+		String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);
 
 		// Prepare RestTemplate
 		RestTemplate restTemplate = new RestTemplate();
@@ -157,7 +159,7 @@ public class FcmService {
 			try{
 				// Create Notification Payload
 				NotificationPayload notificationPayload = new NotificationPayload();
-				notificationPayload.setTitle(dataFromClient.getData().getTitle());
+				notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
 				notificationPayload.setBody(replaceTags(content, TAG_PATTERN, record.toMap()));
 				
 				// Create request body

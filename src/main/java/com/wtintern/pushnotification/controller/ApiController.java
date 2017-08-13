@@ -2,11 +2,7 @@ package com.wtintern.pushnotification.controller;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -128,31 +124,6 @@ public class ApiController {
 		responseToClient.setStatus(STATUS_SUCCESS);
 		
 		return responseToClient;
-	}
-
-	@RequestMapping(value = "/test", method = RequestMethod.POST)
-	public String testMethod() {
-		String stringSample = "Hi <username>. Is <username> your name?. <username> rocks! <admin> wishes you well. Ask <admin> if you have any trouble! <test>";
-		String myRegex = "<([a-zA-Z0-9_]+)>";
-		
-		long startTime = System.nanoTime();
-		
-		Set<String> tags = new HashSet<>();
-	      
-		Pattern pattern = Pattern.compile(myRegex);
-		Matcher matcher = pattern.matcher(stringSample);
-
-		while (matcher.find()) {
-			tags.add(matcher.group(1));
-			System.out.println(stringSample);
-		} 
-		
-		long stopTime = System.nanoTime();
-		long elapsedTime = stopTime - startTime;
-		
-		System.out.println(elapsedTime);
-		
-		return "Elapsed Time: " + Long.toString(elapsedTime) + " - " + tags.toString();
 	}
 
 }
