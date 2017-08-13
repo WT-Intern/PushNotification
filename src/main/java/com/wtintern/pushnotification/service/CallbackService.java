@@ -54,9 +54,13 @@ public class CallbackService {
 			HttpEntity<CallbackBody> requestEntity = new HttpEntity<CallbackBody>(callbackBody, requestHeader);
 
 			// Send callback
-			restTemplate.exchange(callbackUrl, HttpMethod.POST, requestEntity, String.class);
+			try {
+				restTemplate.exchange(callbackUrl, HttpMethod.POST, requestEntity, String.class);
+				logger.info("Callback with " + callbackPayload.size() + " payload(s) Sent");
+			} catch(Exception ex) {
+				logger.info("Callback with " + callbackPayload.size() + " payload(s) not Sent. Check your callback url. Callback server may be down.");
+			}
 			
-			logger.info("Callback with " + callbackPayload.size() + " payload(s) Sent");
 		} else {
 			logger.info("No Callback Sent");
 		}

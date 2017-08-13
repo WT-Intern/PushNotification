@@ -63,8 +63,6 @@ public class FcmService {
 			NotificationPayload notificationPayload = new NotificationPayload();
 			notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
 			notificationPayload.setBody(dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT));
-			
-			System.out.println(notificationPayload.getTitle() + " : " + notificationPayload.getBody());
 	
 			// Create request body
 			RequestToFcm requestBody = new RequestToFcm();
