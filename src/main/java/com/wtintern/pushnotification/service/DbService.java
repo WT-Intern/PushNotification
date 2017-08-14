@@ -4,26 +4,23 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wtintern.pushnotification.model.FcmResponseResult;
+import com.wtintern.pushnotification.model.ResultReport;
+import com.wtintern.pushnotification.repository.ResultReportRepository;
 
 @Service
 public class DbService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DbService.class);
 	
+	@Autowired
+	ResultReportRepository repository;
+	
 	public void saveFcmReportToDb(String toId, FcmResponseResult fcmResponseResult) {
-		System.out.println(
-				"==========================\n" +
-				"SAVED TO DB\n" +
-				"==========================\n" + 
-				"to_id\t\t: " + toId + "\n" +
-				"message_id\t: " + fcmResponseResult.getMessageId() + "\n" +
-				"error\t\t: " + fcmResponseResult.getError() + "\n" +
-				"new_to_id\t: " + fcmResponseResult.getRegistrationId() + "\n" +
-				"==========================\n"
-				);
+		repository.save(buildResultReport(toId, fcmResponseResult));
 		
 		logger.info("Report Saved to DB");
 	}
@@ -36,5 +33,14 @@ public class DbService {
 			currentIndex++;
 		}
 	}
-
+	
+	private ResultReport buildResultReport(String toId, FcmResponseResult fcmResponseResult) {
+		ResultReport report = new ResultReport();
+		report.setToId(toId);
+		report.setMessageId(fcmResponseResult.getMessageId());
+		report.setError(fcmResponseResult.getError());
+		report.setNewToId(fcmResponseResult.getRegistrationId());
+		
+		return report;
+	}
 }
