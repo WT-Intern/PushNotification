@@ -42,7 +42,6 @@ public class ApiController {
 			dataFromClient = mapper.readValue(data, DataFromClient.class);
 		} catch (Exception e) {
 			// If data can't be converted
-			e.printStackTrace();
 			responseToClient.setStatus(STATUS_DATA_ERROR);
 
 			return responseToClient;
@@ -70,7 +69,6 @@ public class ApiController {
 			dataFromClient = mapper.readValue(data, DataFromClient.class);
 		} catch (Exception e) {
 			// If data can't be converted
-			e.printStackTrace();
 			responseToClient.setStatus(STATUS_DATA_ERROR);
 
 			return responseToClient;
@@ -97,8 +95,6 @@ public class ApiController {
 			records = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(new InputStreamReader(file.getInputStream()));
 		} catch (IOException e1) {
 			// If File can't be parsed
-			e1.printStackTrace();
-
 			responseToClient.setStatus(STATUS_FILE_ERROR);
 
 			return responseToClient;
@@ -111,7 +107,6 @@ public class ApiController {
 			dataFromClient = mapper.readValue(data, DataFromClient.class);
 		} catch (Exception e) {
 			// If data can't be converted
-			e.printStackTrace();
 			responseToClient.setStatus(STATUS_DATA_ERROR);
 
 			return responseToClient;

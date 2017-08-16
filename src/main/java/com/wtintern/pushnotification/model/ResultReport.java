@@ -1,5 +1,7 @@
 package com.wtintern.pushnotification.model;
 
+import java.sql.Timestamp;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -23,47 +25,79 @@ public class ResultReport {
 	private String error;
 	@Column(name = "new_to_id")
 	private String newToId;
+	@Column(name = "created_at")
+	private Timestamp createdAt;
+	@Column(name = "content")
+	private String content;
 	
 	public ResultReport() {
 	}
-	
-	public ResultReport(Long id, String toId, String messageId, String error, String newToId) {
+
+	public ResultReport(Long id, String toId, String messageId, String error, String newToId, Timestamp createdAt,
+			String content) {
 		this.id = id;
 		this.toId = toId;
 		this.messageId = messageId;
 		this.error = error;
 		this.newToId = newToId;
+		this.createdAt = createdAt;
+		this.content = content;
 	}
 
 	public Long getId() {
 		return id;
 	}
+
 	public void setId(Long id) {
 		this.id = id;
 	}
+
 	public String getToId() {
 		return toId;
 	}
+
 	public void setToId(String toId) {
 		this.toId = toId;
 	}
+
 	public String getMessageId() {
 		return messageId;
 	}
+
 	public void setMessageId(String messageId) {
 		this.messageId = messageId;
 	}
+
 	public String getError() {
 		return error;
 	}
+
 	public void setError(String error) {
 		this.error = error;
 	}
+
 	public String getNewToId() {
 		return newToId;
 	}
+
 	public void setNewToId(String newToId) {
 		this.newToId = newToId;
+	}
+
+	public Timestamp getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Timestamp createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public String getContent() {
+		return content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
 	}
 		
 }

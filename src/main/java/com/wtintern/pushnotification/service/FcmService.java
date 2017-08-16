@@ -49,8 +49,12 @@ public class FcmService {
 	@Async
 	public void sendNotificationToSingleDevice(DataFromClient dataFromClient, String callbackUrl) {
 		FcmResponseResult fcmResponseResult;
-		try
-		{// Prepare RestTemplate
+		try	{
+			// Get Title & Content from Data
+			String title = dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE);
+			String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);
+			
+			// Prepare RestTemplate
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 	
@@ -61,8 +65,8 @@ public class FcmService {
 	
 			// Create Notification Payload
 			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
-			notificationPayload.setBody(dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT));
+			notificationPayload.setTitle(title);
+			notificationPayload.setBody(content);
 	
 			// Create request body
 			RequestToFcm requestBody = new RequestToFcm();
@@ -82,7 +86,7 @@ public class FcmService {
 			fcmResponseResult = FcmExceptionHandler.buildFromException(ex);
 		}
 		// Save results to DB
-		dbService.saveFcmReportToDb(dataFromClient.getTo(), fcmResponseResult);
+		dbService.saveFcmReportToDb(dataFromClient.getTo(), dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT), fcmResponseResult);
 		
 		// Send callback if needed
 		cbService.sendCallback(callbackUrl, dataFromClient.getTo(), fcmResponseResult);
@@ -92,8 +96,12 @@ public class FcmService {
 	public void sendNotificationToMultipleDevice(DataFromClient dataFromClient, List<String> toIds, String callbackUrl) {
 		
 		List<FcmResponseResult> fcmResponseResults = new ArrayList<FcmResponseResult>();
-		try
-		{// Prepare RestTemplate
+		try	{
+			// Get Title & Content from Data
+			String title = dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE);
+			String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);
+			
+			// Prepare RestTemplate
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 	
@@ -104,8 +112,8 @@ public class FcmService {
 	
 			// Create Notification Payload
 			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
-			notificationPayload.setBody(dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT));
+			notificationPayload.setTitle(title);
+			notificationPayload.setBody(content);
 	
 			// Create request body
 			RequestToFcm requestBody = new RequestToFcm();
@@ -125,7 +133,7 @@ public class FcmService {
 			fcmResponseResults = FcmExceptionHandler.buildFromException(ex, toIds);
 		}
 		// Save results to DB
-		dbService.saveFcmReportToDb(toIds,fcmResponseResults);
+		dbService.saveFcmReportToDb(toIds, dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT), fcmResponseResults);
 		
 		// Send callback if needed
 		cbService.sendCallback(callbackUrl, toIds, fcmResponseResults);
@@ -135,7 +143,8 @@ public class FcmService {
 	@Async
 	public void sendNotificationWithFormattedMessage(DataFromClient dataFromClient, CSVParser records, String callbackUrl) {
 		
-		// Get Content from Data
+		// Get Title & Content from Data
+		String title = dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE);
 		String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);
 
 		// Prepare RestTemplate
@@ -154,10 +163,10 @@ public class FcmService {
 		
 		// Send Request to FCM for Each Device
 		for (CSVRecord record : records) {
-			try{
+			try {
 				// Create Notification Payload
 				NotificationPayload notificationPayload = new NotificationPayload();
-				notificationPayload.setTitle(dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE));
+				notificationPayload.setTitle(title);
 				notificationPayload.setBody(replaceTags(content, TAG_PATTERN, record.toMap()));
 				
 				// Create request body
@@ -184,7 +193,7 @@ public class FcmService {
 		}
 		
 		// Save results to DB
-		dbService.saveFcmReportToDb(toIds, fcmResponseResultsList);
+		dbService.saveFcmReportToDb(toIds, content, fcmResponseResultsList);
 		
 		// Send callback if needed
 		cbService.sendCallback(callbackUrl, toIds, fcmResponseResultsList);
