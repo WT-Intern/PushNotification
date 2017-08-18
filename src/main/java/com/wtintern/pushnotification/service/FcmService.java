@@ -32,7 +32,6 @@ import com.wtintern.pushnotification.model.ResponseFromFcm;
 public class FcmService {
 	
 	private static final String URL = "https://fcm.googleapis.com/fcm/send";
-	private static final String SERVER_KEY = "AAAA7ccnQhg:APA91bFn4RYCuFFlXPy8bKOIHdNvEuKXNJdHuxu1AcSNTOAVBV6GsTVUlPJVF3Lt5_wtyGNgQXuXkV84hjEfT7PEXFfownoZVX_Ra63FlPhKZXDuFzXe65N1VLnmwZa6ly-hes9AilM2";
 	private static final String DEVICE_ID_HEADER = "to_id";
 	private static final String TAG_PATTERN = "<([a-zA-Z0-9_]+)>";
 	
@@ -47,7 +46,7 @@ public class FcmService {
 	CallbackService cbService;
 
 	@Async
-	public void sendNotificationToSingleDevice(DataFromClient dataFromClient, String callbackUrl) {
+	public void sendNotificationToSingleDevice(DataFromClient dataFromClient, String callbackUrl, String serverKey) {
 		FcmResponseResult fcmResponseResult;
 		try	{
 			// Get Title & Content from Data
@@ -60,7 +59,7 @@ public class FcmService {
 	
 			// Create request header
 			MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-			requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
+			requestHeader.add("Authorization", "key=" + serverKey); // add server key here
 			requestHeader.add("Content-Type", "application/json");
 	
 			// Create Notification Payload
@@ -93,7 +92,7 @@ public class FcmService {
 	}
 
 	@Async
-	public void sendNotificationToMultipleDevice(DataFromClient dataFromClient, List<String> toIds, String callbackUrl) {
+	public void sendNotificationToMultipleDevice(DataFromClient dataFromClient, List<String> toIds, String callbackUrl, String serverKey) {
 		
 		List<FcmResponseResult> fcmResponseResults = new ArrayList<FcmResponseResult>();
 		try	{
@@ -107,7 +106,7 @@ public class FcmService {
 	
 			// Create request header
 			MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-			requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
+			requestHeader.add("Authorization", "key=" + serverKey); // add server key here
 			requestHeader.add("Content-Type", "application/json");
 	
 			// Create Notification Payload
@@ -141,7 +140,7 @@ public class FcmService {
 	}
 
 	@Async
-	public void sendNotificationWithFormattedMessage(DataFromClient dataFromClient, CSVParser records, String callbackUrl) {
+	public void sendNotificationWithFormattedMessage(DataFromClient dataFromClient, CSVParser records, String callbackUrl, String serverKey) {
 		
 		// Get Title & Content from Data
 		String title = dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE);
@@ -153,7 +152,7 @@ public class FcmService {
 
 		// Create request header
 		MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-		requestHeader.add("Authorization", "key=" + SERVER_KEY); // add server key here
+		requestHeader.add("Authorization", "key=" + serverKey); // add server key here
 		requestHeader.add("Content-Type", "application/json");
 		
 		// Create List to Track Each toIds & result for report

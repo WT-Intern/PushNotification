@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,7 +31,7 @@ public class ApiController {
 	FcmService fcmService;
 
 	@RequestMapping(value = "/single_device", method = RequestMethod.POST)
-	public ResponseToClient notifySingleDevice(@RequestParam("data") String data,
+	public ResponseToClient notifySingleDevice(@RequestHeader("Server-Key") String serverKey, @RequestParam("data") String data,
 			@RequestParam("callback_url") String callbackUrl) {
 		// Prepare Response to Client
 		ResponseToClient responseToClient = new ResponseToClient();
@@ -48,7 +49,7 @@ public class ApiController {
 		}
 		
 		// Send Notification
-		fcmService.sendNotificationToSingleDevice(dataFromClient, callbackUrl);
+		fcmService.sendNotificationToSingleDevice(dataFromClient, callbackUrl, serverKey);
 		
 		// Set Response for Client
 		responseToClient.setStatus(STATUS_SUCCESS);
@@ -57,7 +58,7 @@ public class ApiController {
 	}
 
 	@RequestMapping(value = "/multiple_device", method = RequestMethod.POST)
-	public ResponseToClient notifyMultipleDevice(@RequestParam("data") String data,
+	public ResponseToClient notifyMultipleDevice(@RequestHeader("Server-Key") String serverKey, @RequestParam("data") String data,
 			@RequestParam("to_ids") List<String> toIds, @RequestParam("callback_url") String callbackUrl) {
 		// Prepare Response to Client
 		ResponseToClient responseToClient = new ResponseToClient();
@@ -75,7 +76,7 @@ public class ApiController {
 		}
 		
 		// Send Notification
-		fcmService.sendNotificationToMultipleDevice(dataFromClient, toIds, callbackUrl);
+		fcmService.sendNotificationToMultipleDevice(dataFromClient, toIds, callbackUrl, serverKey);
 		
 		// Set response to client
 		responseToClient.setStatus(STATUS_SUCCESS);
@@ -84,7 +85,7 @@ public class ApiController {
 	}
 
 	@RequestMapping(value = "/formatted_message", method = RequestMethod.POST)
-	public ResponseToClient notifyWithFormattedMessage(@RequestParam("data") String data,
+	public ResponseToClient notifyWithFormattedMessage(@RequestHeader("Server-Key") String serverKey, @RequestParam("data") String data,
 			@RequestParam("file") MultipartFile file, @RequestParam("callback_url") String callbackUrl) {
 		// Prepare Response to Client
 		ResponseToClient responseToClient = new ResponseToClient();
@@ -113,12 +114,12 @@ public class ApiController {
 		}
 		
 		// Send Notification
-		fcmService.sendNotificationWithFormattedMessage(dataFromClient, records, callbackUrl);
+		fcmService.sendNotificationWithFormattedMessage(dataFromClient, records, callbackUrl, serverKey);
 		
 		// Set response to client
 		responseToClient.setStatus(STATUS_SUCCESS);
 		
 		return responseToClient;
 	}
-
+	
 }
