@@ -51,31 +51,15 @@ public class FcmService {
 		try	{
 			// Get Title & Content from Data
 			String title = dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE);
-			String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);
+			String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);		
+			
+			// Build Request Entity
+			HttpEntity<RequestToFcm> requestEntity = buildFcmRequestEntity(serverKey, title, content, dataFromClient.getData(), dataFromClient.getTo(), null);
 			
 			// Prepare RestTemplate
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-	
-			// Create request header
-			MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-			requestHeader.add("Authorization", "key=" + serverKey); // add server key here
-			requestHeader.add("Content-Type", "application/json");
-	
-			// Create Notification Payload
-			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(title);
-			notificationPayload.setBody(content);
-	
-			// Create request body
-			RequestToFcm requestBody = new RequestToFcm();
-			requestBody.setTo(dataFromClient.getTo());
-			requestBody.setNotification(notificationPayload);
-			requestBody.setData(dataFromClient.getData());
-	
-			// Create Request Entity
-			HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
-	
+			
 			// Send request and get response
 			ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
 			fcmResponseResult = responseEntity.getBody().getResults().get(0);
@@ -98,30 +82,14 @@ public class FcmService {
 		try	{
 			// Get Title & Content from Data
 			String title = dataFromClient.getData().get(DATA_CLIENT_ATT_TITLE);
-			String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);
+			String content = dataFromClient.getData().get(DATA_CLIENT_ATT_CONTENT);		
+	
+			// Build Request Entity
+			HttpEntity<RequestToFcm> requestEntity = buildFcmRequestEntity(serverKey, title, content, dataFromClient.getData(), null, toIds);
 			
 			// Prepare RestTemplate
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-	
-			// Create request header
-			MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-			requestHeader.add("Authorization", "key=" + serverKey); // add server key here
-			requestHeader.add("Content-Type", "application/json");
-	
-			// Create Notification Payload
-			NotificationPayload notificationPayload = new NotificationPayload();
-			notificationPayload.setTitle(title);
-			notificationPayload.setBody(content);
-	
-			// Create request body
-			RequestToFcm requestBody = new RequestToFcm();
-			requestBody.setRegistrationIds(toIds);
-			requestBody.setNotification(notificationPayload);
-			requestBody.setData(dataFromClient.getData());
-	
-			// Create Request Entity
-			HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
 	
 			// Send request and get response
 			ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity, ResponseFromFcm.class);
@@ -149,11 +117,6 @@ public class FcmService {
 		// Prepare RestTemplate
 		RestTemplate restTemplate = new RestTemplate();
 		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-
-		// Create request header
-		MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
-		requestHeader.add("Authorization", "key=" + serverKey); // add server key here
-		requestHeader.add("Content-Type", "application/json");
 		
 		// Create List to Track Each toIds & result for report
 		List<String> toIds = new ArrayList<String>();
@@ -163,19 +126,11 @@ public class FcmService {
 		// Send Request to FCM for Each Device
 		for (CSVRecord record : records) {
 			try {
-				// Create Notification Payload
-				NotificationPayload notificationPayload = new NotificationPayload();
-				notificationPayload.setTitle(title);
-				notificationPayload.setBody(replaceTags(content, TAG_PATTERN, record.toMap()));
-				
-				// Create request body
-				RequestToFcm requestBody = new RequestToFcm();
-				requestBody.setTo(record.get(DEVICE_ID_HEADER));
-				requestBody.setNotification(notificationPayload);
-				requestBody.setData(dataFromClient.getData());
+				// Format Content
+				String formattedContent = replaceTags(content, TAG_PATTERN, record.toMap());
 	
-				// Create Request Entity
-				HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
+				// Build Request Entity
+				HttpEntity<RequestToFcm> requestEntity = buildFcmRequestEntity(serverKey, title, formattedContent, dataFromClient.getData(), record.get(DEVICE_ID_HEADER), null);
 				
 				// Send request and get response
 				ResponseEntity<ResponseFromFcm> responseEntity = restTemplate.exchange(URL, HttpMethod.POST, requestEntity,	ResponseFromFcm.class);
@@ -209,5 +164,29 @@ public class FcmService {
 		matcher.appendTail(result);
 		
 		return result.toString();
+	}
+	
+	private HttpEntity<RequestToFcm> buildFcmRequestEntity(String serverKey, String title, String content, Map<String, String> dataPayload, String toId, List<String> toIds) {	
+		// Create request header
+		MultiValueMap<String, String> requestHeader = new LinkedMultiValueMap<String, String>();
+		requestHeader.add("Authorization", "key=" + serverKey); // add server key here
+		requestHeader.add("Content-Type", "application/json");
+
+		// Create Notification Payload
+		NotificationPayload notificationPayload = new NotificationPayload();
+		notificationPayload.setTitle(title);
+		notificationPayload.setBody(content);
+
+		// Create request body
+		RequestToFcm requestBody = new RequestToFcm();
+		requestBody.setTo(toId);
+		requestBody.setRegistrationIds(toIds);
+		requestBody.setNotification(notificationPayload);
+		requestBody.setData(dataPayload);
+
+		// Create Request Entity
+		HttpEntity<RequestToFcm> requestEntity = new HttpEntity<RequestToFcm>(requestBody, requestHeader);
+		
+		return requestEntity;
 	}
 }
