@@ -24,8 +24,8 @@ import com.wtintern.pushnotification.service.FcmService;
 public class ApiController {
 	
 	private static final String STATUS_SUCCESS = "600";
-	private static final String STATUS_DATA_ERROR = "601";
-	private static final String STATUS_FILE_ERROR = "602";
+	private static final String STATUS_ERROR_DATA = "601";
+	private static final String STATUS_ERROR_FILE = "602";
 	
 	@Autowired
 	FcmService fcmService;
@@ -43,7 +43,7 @@ public class ApiController {
 			dataFromClient = mapper.readValue(data, DataFromClient.class);
 		} catch (Exception e) {
 			// If data can't be converted
-			responseToClient.setStatus(STATUS_DATA_ERROR);
+			responseToClient.setStatus(STATUS_ERROR_DATA);
 
 			return responseToClient;
 		}
@@ -70,7 +70,7 @@ public class ApiController {
 			dataFromClient = mapper.readValue(data, DataFromClient.class);
 		} catch (Exception e) {
 			// If data can't be converted
-			responseToClient.setStatus(STATUS_DATA_ERROR);
+			responseToClient.setStatus(STATUS_ERROR_DATA);
 
 			return responseToClient;
 		}
@@ -96,7 +96,7 @@ public class ApiController {
 			records = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(new InputStreamReader(file.getInputStream()));
 		} catch (IOException e1) {
 			// If File can't be parsed
-			responseToClient.setStatus(STATUS_FILE_ERROR);
+			responseToClient.setStatus(STATUS_ERROR_FILE);
 
 			return responseToClient;
 		}
@@ -108,7 +108,7 @@ public class ApiController {
 			dataFromClient = mapper.readValue(data, DataFromClient.class);
 		} catch (Exception e) {
 			// If data can't be converted
-			responseToClient.setStatus(STATUS_DATA_ERROR);
+			responseToClient.setStatus(STATUS_ERROR_DATA);
 
 			return responseToClient;
 		}
